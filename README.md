@@ -1,6 +1,6 @@
 # llm-app-security-scanner
 
-**Early-stage tool, v0.1.0.** It does **not** yet qualify for any six-month
+**Early-stage tool, v0.3.0.** It does **not** yet qualify for any six-month
 open-source maintainer programme, and it has no stars, downloads, users, or
 benchmarks to claim. This README describes what it does honestly, including
 its limits.
@@ -29,6 +29,7 @@ Run `llm-scan scan --help` for `--fail-on`, `--fail-on-any`, and `--exclude`.
 | Check | What it flags | Attack story |
 |---|---|---|
 | `SHELL001` | `os.system` / `os.popen`, `subprocess` with `shell=True`, especially on tainted input | An agent reads a web page that says “run this command”. If the agent builds a shell string from that text, the page author gets a shell. |
+| `PY003` | `subprocess` `run` / `call` / `check_call` / `check_output` / `Popen` with a tainted command or argv, even without `shell=True` | No shell is needed for damage: whoever controls the command string or an argv entry controls which program runs. Use an allowlisted command mapping and a literal argv list. |
 | `TOOL001` / `TOOL002` | Agent tool execution mentioning a shell; `allow_shell=True` or a raw `shell`/`bash` tool | A tool list is a permission list. Giving an agent a raw shell tool is giving it every command, not one capability. |
 | `FILE001` | File delete / write to a tainted (user- or input-controlled) path | A prompt-injected agent is asked to “save the report” to a path the attacker chose, and overwrites or deletes something else. |
 | `SECRET001` | Known-format secret literals: OpenAI-style keys, AWS keys, GitHub tokens, Slack tokens | A key committed to a repo is public the moment the repo is public. Rotate it; do not just delete the line. |
@@ -102,7 +103,7 @@ workflow you can copy for your own repo, including uploading SARIF to
 GitHub code scanning.
 
 An `action.yml` wrapper is included at the repo root for use as
-`uses: AsherLucas/llm-app-security-scanner@v0.1.0` once a release exists.
+`uses: AsherLucas/llm-app-security-scanner@v0.3.0` once a release exists.
 
 ## Limits (read before trusting it)
 
@@ -112,6 +113,13 @@ An `action.yml` wrapper is included at the repo root for use as
 - The sanitiser list is name-based (`sanitize`, `validate`, `allowlist`,
   …). A real sanitiser with another name will be missed, and a function
   *named* sanitize that does nothing will be trusted. Review the code.
+- PY003 uses the same single-file taint tracking as the other checks:
+  it flags input assigned from `input()`, a web fetch, or request data
+  in the same file, but not a bare function parameter, not an inline
+  `sys.argv[1]` / `request.form["x"]` passed without assignment, not a
+  `from subprocess import run` alias (only `subprocess.<fn>` is seen),
+  and not the `args=` keyword form. A clean PY003 scan is not proof
+  that no subprocess call is attacker-controlled.
 - Secrets detection is pattern-based; it will miss secrets in other
   formats and flag some test placeholders.
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-app-security-scanner"
-version = "0.2.0"
+version = "0.3.0"
 description = "Static security scanner for LLM/agent repos: shell, file-write, secret, and untrusted-input risks as a CI gate, with SARIF output."
 readme = "README.md"
 license = "MIT"

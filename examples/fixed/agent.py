@@ -2,6 +2,8 @@
 
 - Secrets come from the environment, never literals.
 - Shell commands go through an allowlist, as a list argv, never shell=True.
+- Subprocess calls use an allowlisted command mapping, never a
+  user-controlled command string or argv (PY003).
 - File writes are confined to one directory.
 - External text is sanitised and labelled as data before it reaches the LLM.
 """
@@ -13,6 +15,7 @@ import requests
 
 API_KEY = os.environ.get("LLM_API_KEY", "")
 ALLOWED_COMMANDS = {"ls", "git-status"}
+COMMANDS = {"list": ["ls", "-l"]}
 BASE_DIR = Path("notes")
 
 
@@ -35,6 +38,14 @@ def run_tool(command):
         subprocess.run(["ls"], check=False)
     else:
         subprocess.run(["git", "status"], check=False)
+
+
+def run_subprocess(choice):
+    # Only a key into an allowlisted mapping is accepted; the argv that
+    # actually runs is always a literal list from that mapping.
+    if choice not in COMMANDS:
+        raise ValueError("command not allowlisted")
+    subprocess.run(COMMANDS[choice], check=False)
 
 
 def save_note(name, text):

@@ -56,6 +56,27 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
+def _expr_is_tainted(expr: ast.AST, tainted: dict[str, int]) -> bool:
+    """True if an argument expression carries tracked taint.
+
+    Mirrors the taint model used by AGENT001: a tainted Name, a formatted
+    string interpolating one, or a list/tuple containing one. A plain
+    variable (e.g. a function parameter) is NOT tainted by this model —
+    see the PY003 limits in the README — so it is not flagged here.
+    """
+    if isinstance(expr, ast.Name):
+        return expr.id in tainted
+    if isinstance(expr, ast.JoinedStr):
+        return any(
+            isinstance(v, ast.FormattedValue) and isinstance(v.value, ast.Name)
+            and v.value.id in tainted
+            for v in expr.values
+        )
+    if isinstance(expr, (ast.List, ast.Tuple)):
+        return any(_expr_is_tainted(elt, tainted) for elt in expr.elts)
+    return False
+
+
 def _call_full(node: ast.Call) -> str:
     func = node.func
     if isinstance(func, ast.Name):
@@ -152,6 +173,27 @@ class _Visitor(ast.NodeVisitor):
             # broad file delete via subprocess rm -rf
             if isinstance(node.args[0], ast.Constant) if node.args else False:
                 pass
+
+        # PY003: subprocess execution from unsanitised input, no shell=True
+        # needed. Without a shell, a tainted string is still the executable
+        # (or a tainted list element is still an argv entry) the attacker
+        # chooses, so this is not covered by SHELL001. shell=True + run is
+        # deliberately skipped here: SHELL001 already flags that case, and
+        # a second finding on the same line would be duplicate noise.
+        if name in ("run", "call", "check_call", "check_output", "Popen") \
+                and full.startswith("subprocess"):
+            shell_true = any(
+                isinstance(kw.value, ast.Constant) and kw.value.value is True
+                for kw in node.keywords if kw.arg == "shell"
+            )
+            if not (name == "run" and shell_true) \
+                    and node.args and _expr_is_tainted(node.args[0], self.tainted) \
+                    and not _is_allowlisted_call(node):
+                self._add("PY003", "high", "high", node,
+                          "subprocess call with a tainted command/argv and no allowlist; "
+                          "even without shell=True the attacker controls which program "
+                          "runs or which arguments it receives. Use an allowlisted "
+                          "command mapping and a literal argv list instead.")
 
         # TOOL001: agent tool permission without allowlist
         if name in ("run", "execute", "invoke") and _is_allowlisted_call(node) is False:

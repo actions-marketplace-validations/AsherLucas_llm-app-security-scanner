@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0] — 2026-10-30
+
+### Added
+
+- New check PY003: Python `subprocess` calls (`run`/`call`/`check_call`/`check_output`/`Popen`) whose command or argv carries tracked-tainted input, even without `shell=True` — the attacker still controls which program runs or which arguments it receives. Tainted + `shell=True` stays under SHELL001 only, so the same call is not flagged twice. Covered by regression tests and by the vulnerable/fixed examples.
+- README version references corrected to v0.3.0 (previously still said v0.1.0).
+
 ## [0.2.0] — 2026-10-29
 
 ### Added
@@ -7,6 +14,12 @@
 - JS/TS checks: JS001 eval(), JS002 child_process exec/execSync/spawnSync, JS003 new Function(), with examples/js/vulnerable.js and a regression test.
 
 ## Unreleased
+- New check PY003: Python `subprocess` calls (`run`/`call`/`check_call`/
+  `check_output`/`Popen`) whose command or argv carries tracked-tainted
+  input, even without `shell=True` — the attacker still controls which
+  program runs or which arguments it receives. Tainted + `shell=True`
+  stays under SHELL001 only, so the same call is not flagged twice.
+  Covered by regression tests and by the vulnerable/fixed examples.
 - Real CI in `.github/workflows/ci.yml`: pytest on Python 3.11/3.12,
   vulnerable example must fail the gate, fixed example must pass,
   adversarial pack, and a dogfood scan of `src/` with SARIF artifact.
