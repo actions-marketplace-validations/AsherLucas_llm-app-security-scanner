@@ -35,6 +35,13 @@ def run_subprocess():
     subprocess.Popen([cmd])
 
 
+def run_code():
+    # The string IS code: tainted input to eval() is arbitrary code
+    # execution, not just command choice (PY004).
+    code = input()
+    eval(code)
+
+
 def save_note(path, text):
     # File write to a user-controlled path, no directory confinement.
     with open(path, "w") as f:

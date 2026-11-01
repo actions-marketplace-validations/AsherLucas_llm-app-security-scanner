@@ -14,9 +14,8 @@
 - JS/TS checks: JS001 eval(), JS002 child_process exec/execSync/spawnSync, JS003 new Function(), with examples/js/vulnerable.js and a regression test.
 
 ## Unreleased
-- New check PY003: Python `subprocess` calls (`run`/`call`/`check_call`/
-  `check_output`/`Popen`) whose command or argv carries tracked-tainted
-  input, even without `shell=True` — the attacker still controls which
+- New check PY004: Python `eval()`/`exec()` on tracked-tainted input (including f-string interpolation of tainted input) — the string is code, so this is arbitrary code execution. Bare builtins only, not `obj.eval` methods; literal / `ast.literal_eval` cases are not flagged. Covered by regression tests and by the vulnerable/fixed examples.
+- New check PY003: Python `subprocess` calls (`run`/`call`/`check_call`/`check_output`/`Popen`) whose command or argv carries tracked-tainted input, even without `shell=True` — the attacker still controls which
   program runs or which arguments it receives. Tainted + `shell=True`
   stays under SHELL001 only, so the same call is not flagged twice.
   Covered by regression tests and by the vulnerable/fixed examples.

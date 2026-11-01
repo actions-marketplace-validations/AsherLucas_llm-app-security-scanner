@@ -48,6 +48,14 @@ def run_subprocess(choice):
     subprocess.run(COMMANDS[choice], check=False)
 
 
+def run_code(text):
+    # Never eval()/exec() untrusted text (PY004). Data is parsed, not
+    # executed: ast.literal_eval accepts only literals, never code.
+    import ast
+
+    return ast.literal_eval(text)
+
+
 def save_note(name, text):
     # Confine writes to BASE_DIR; reject path traversal.
     target = (BASE_DIR / name).resolve()
