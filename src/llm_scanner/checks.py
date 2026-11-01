@@ -195,7 +195,17 @@ class _Visitor(ast.NodeVisitor):
                           "runs or which arguments it receives. Use an allowlisted "
                           "command mapping and a literal argv list instead.")
 
-        # TOOL001: agent tool permission without allowlist
+        # PY004: eval()/exec() on tainted input. Unlike PY003 there is no
+        # program boundary at all: the string IS code, so a tainted
+        # argument is arbitrary code execution, not just command choice.
+        # Only bare builtins are flagged (ast.Name), not obj.eval methods.
+        if isinstance(node.func, ast.Name) and name in ("eval", "exec") \
+                and node.args and _expr_is_tainted(node.args[0], self.tainted) \
+                and not _is_allowlisted_call(node):
+            self._add("PY004", "high", "high", node,
+                      "eval()/exec() on tainted input executes attacker-controlled "
+                      "code. Parse data with ast.literal_eval or json instead; "
+                      "never execute untrusted text.")
         if name in ("run", "execute", "invoke") and _is_allowlisted_call(node) is False:
             # only flag when the surrounding call mentions a tool/agent and a shell
             text = self._snippet(node).lower()

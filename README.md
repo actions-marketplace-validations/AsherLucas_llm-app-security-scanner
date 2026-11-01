@@ -30,6 +30,7 @@ Run `llm-scan scan --help` for `--fail-on`, `--fail-on-any`, and `--exclude`.
 |---|---|---|
 | `SHELL001` | `os.system` / `os.popen`, `subprocess` with `shell=True`, especially on tainted input | An agent reads a web page that says “run this command”. If the agent builds a shell string from that text, the page author gets a shell. |
 | `PY003` | `subprocess` `run` / `call` / `check_call` / `check_output` / `Popen` with a tainted command or argv, even without `shell=True` | No shell is needed for damage: whoever controls the command string or an argv entry controls which program runs. Use an allowlisted command mapping and a literal argv list. |
+| `PY004` | `eval()` / `exec()` on tainted input | The string IS code: tainted input here is arbitrary code execution, worse than PY003's command choice. Parse data with `ast.literal_eval` or `json` instead; never execute untrusted text. |
 | `TOOL001` / `TOOL002` | Agent tool execution mentioning a shell; `allow_shell=True` or a raw `shell`/`bash` tool | A tool list is a permission list. Giving an agent a raw shell tool is giving it every command, not one capability. |
 | `FILE001` | File delete / write to a tainted (user- or input-controlled) path | A prompt-injected agent is asked to “save the report” to a path the attacker chose, and overwrites or deletes something else. |
 | `SECRET001` | Known-format secret literals: OpenAI-style keys, AWS keys, GitHub tokens, Slack tokens | A key committed to a repo is public the moment the repo is public. Rotate it; do not just delete the line. |

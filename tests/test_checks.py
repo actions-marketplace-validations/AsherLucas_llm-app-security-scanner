@@ -114,7 +114,27 @@ def test_subprocess_sanitised_input_not_flagged(tmp_path):
     assert not any(f.check_id == "PY003" for f in findings)
 
 
-def test_allow_shell_flag_flagged(tmp_path):
+def test_eval_tainted_input_flagged(tmp_path):
+    code = "code = input()\neval(code)\n"
+    findings = _scan(code, tmp_path)
+    assert any(f.check_id == "PY004" and f.severity == "high" and f.confidence == "high" for f in findings)
+
+
+def test_exec_interpolated_tainted_input_flagged(tmp_path):
+    code = "code = input()\nexec(f'run({code})')\n"
+    findings = _scan(code, tmp_path)
+    assert any(f.check_id == "PY004" for f in findings)
+
+
+def test_literal_eval_not_flagged(tmp_path):
+    code = "import ast\ntext = input()\nvalue = ast.literal_eval(text)\n"
+    findings = _scan(code, tmp_path)
+    assert not any(f.check_id == "PY004" for f in findings)
+
+
+def test_eval_literal_not_flagged(tmp_path):
+    findings = _scan("eval('1 + 2')\n", tmp_path)
+    assert not any(f.check_id == "PY004" for f in findings)
     findings = _scan("agent = Agent(allow_shell=True)\n", tmp_path)
     assert any(f.check_id == "TOOL002" for f in findings)
 
